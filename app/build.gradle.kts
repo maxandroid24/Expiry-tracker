@@ -66,6 +66,8 @@ android {
 }
 
 dependencies {
+implementation("com.google.accompanist:accompanist-permissions:0.34.0")
+    
     val composeBom = platform("androidx.compose:compose-bom:2024.09.02")
     implementation(composeBom)
     androidTestImplementation(composeBom)
