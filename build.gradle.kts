@@ -9,10 +9,6 @@ application {
     mainClass.set("com.example.MainKt")
 }
 
-repositories {
-    mavenCentral()
-}
-
 dependencies {
     implementation(kotlin("stdlib"))
 }
