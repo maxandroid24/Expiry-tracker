@@ -1,0 +1,7 @@
+# Copy this file to local.properties and fill in your values.
+# Android SDK location (Android Studio sets this automatically)
+sdk.dir=/path/to/your/Android/Sdk
+
+# Optional: OpenAI API key for the cloud OCR fallback.
+# If left blank, the app will only use on-device ML Kit OCR.
+OPENAI_API_KEY=

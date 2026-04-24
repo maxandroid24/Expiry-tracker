@@ -1,0 +1,5 @@
+<?xml version="1.0" encoding="utf-8"?>
+<paths>
+    <files-path name="product_images" path="product_images/" />
+    <cache-path name="cache_images" path="images/" />
+</paths>
