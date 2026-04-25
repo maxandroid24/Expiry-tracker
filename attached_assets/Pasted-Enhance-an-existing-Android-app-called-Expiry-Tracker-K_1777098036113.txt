@@ -1,0 +1,139 @@
+Enhance an existing Android app called “Expiry Tracker” (Kotlin, XML, SQLite) by adding a secure OCR scanning feature with backend-based OpenAI fallback.
+
+GOAL:
+Allow users to scan product labels using the back camera and automatically extract:
+- Product name
+- Manufacturing date (MFG / PKD)
+- Expiry date (EXP / Best Before)
+
+IMPORTANT SECURITY REQUIREMENT:
+- The OpenAI API key must NEVER be stored in the Android app.
+- All OpenAI requests must go through a backend API.
+- The app must NOT contain BuildConfig API keys or hardcoded secrets.
+
+-----------------------------------
+ARCHITECTURE:
+-----------------------------------
+Android App → Backend (/ocr endpoint) → OpenAI API
+
+-----------------------------------
+ANDROID APP REQUIREMENTS:
+-----------------------------------
+
+1. Camera Integration:
+- Use CameraX (Preview + ImageCapture or ImageAnalysis)
+- Use back-facing camera
+- Allow user to scan product label
+
+2. On-device OCR (Primary):
+- Use ML Kit Text Recognition
+- Extract raw text from image
+
+3. Smart Parsing:
+- Detect:
+  - Product name (largest or most prominent text)
+  - MFG date (keywords: MFG, PKD, Packed)
+  - EXP date (keywords: EXP, Best Before, Use By)
+- Support formats:
+  - DD/MM/YYYY
+  - DD-MM-YYYY
+  - MM/YYYY
+
+4. Confidence Logic:
+- If OCR result is strong → use it
+- If missing fields or low confidence → call backend OCR
+
+5. Backend OCR Call:
+- Use Retrofit
+- Send base64 image to backend endpoint:
+  POST /ocr
+
+Request:
+{
+  "image": "base64"
+}
+
+Response:
+{
+  "name": "...",
+  "mfgDate": "...",
+  "expDate": "..."
+}
+
+6. UI Flow:
+Scan → OCR → Review Screen → Autofill Form → User edits → Save
+
+7. Add Product Screen:
+- Prefill detected values
+- Allow full editing
+- Save to SQLite database
+
+8. Product List:
+- Green → valid
+- Yellow → near expiry
+- Red → expired
+
+9. Error Handling:
+- If camera fails → show message
+- If OCR fails → open empty form
+- Always allow manual entry
+
+-----------------------------------
+BACKEND REQUIREMENTS (Node.js / Express):
+-----------------------------------
+
+1. Endpoint:
+POST /ocr
+
+2. Input:
+{
+  "image": "base64"
+}
+
+3. Validate:
+- Reject empty image
+- Limit payload size
+
+4. Call OpenAI API:
+- Use environment variable: OPENAI_API_KEY
+- NEVER expose key to client
+
+5. Prompt to OpenAI:
+"Extract product name, manufacturing date, and expiry date from this product label image. Return JSON only."
+
+6. Return structured response:
+{
+  "name": "...",
+  "mfgDate": "...",
+  "expDate": "..."
+}
+
+7. Add basic protection:
+- Rate limiting
+- Request validation
+
+-----------------------------------
+ANDROID IMPLEMENTATION DETAILS:
+-----------------------------------
+
+- Use Retrofit for networking
+- Use ViewModel + StateFlow for scan state
+- Compress image before upload
+- Do not block UI thread
+- Handle lifecycle properly for CameraX
+
+-----------------------------------
+SECURITY RULES:
+-----------------------------------
+
+- No API keys in Android app
+- No secrets in BuildConfig
+- All sensitive calls via backend only
+
+-----------------------------------
+OUTPUT:
+-----------------------------------
+
+- Complete Android code (CameraX + ML Kit + Retrofit)
+- Backend code (Node.js)
+- Clean, modular, production-ready implementation
