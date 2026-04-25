@@ -7,11 +7,17 @@ plugins {
     id("kotlin-kapt")
 }
 
+// Read non-secret build configuration from local.properties.
+// Note: the OpenAI API key is intentionally NOT read here. All OpenAI calls are
+// proxied through the backend service so the key never ships with the APK.
 val localProperties = Properties().apply {
     val f = rootProject.file("local.properties")
     if (f.exists()) load(FileInputStream(f))
 }
-val openAiApiKey: String = localProperties.getProperty("OPENAI_API_KEY", "")
+val backendOcrUrl: String = localProperties.getProperty(
+    "BACKEND_OCR_URL",
+    "http://10.0.2.2:5000/" // default for Android emulator hitting host machine
+)
 
 android {
     namespace = "com.example.expirytracker"
@@ -27,7 +33,8 @@ android {
         testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
         vectorDrawables { useSupportLibrary = true }
 
-        buildConfigField("String", "OPENAI_API_KEY", "\"$openAiApiKey\"")
+        // Backend base URL is the only build-time config. No secrets.
+        buildConfigField("String", "BACKEND_OCR_URL", "\"$backendOcrUrl\"")
     }
 
     buildTypes {
@@ -66,8 +73,6 @@ android {
 }
 
 dependencies {
-implementation("com.google.accompanist:accompanist-permissions:0.34.0")
-    
     val composeBom = platform("androidx.compose:compose-bom:2024.09.02")
     implementation(composeBom)
     androidTestImplementation(composeBom)
@@ -104,10 +109,12 @@ implementation("com.google.accompanist:accompanist-permissions:0.34.0")
     // Coil
     implementation("io.coil-kt:coil-compose:2.7.0")
 
-    // Networking
+    // Networking — Retrofit + Gson + OkHttp logging
+    implementation("com.squareup.retrofit2:retrofit:2.11.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.11.0")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
-    implementation("org.json:json:20240303")
+    implementation("com.google.code.gson:gson:2.11.0")
 
     // Coroutines
     implementation("org.jetbrains.kotlinx:kotlinx-coroutines-android:1.8.1")

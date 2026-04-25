@@ -7,118 +7,70 @@ import com.example.expirytracker.utils.DateUtils
 import com.example.expirytracker.utils.ImageUtils
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
-import okhttp3.MediaType.Companion.toMediaType
-import okhttp3.OkHttpClient
-import okhttp3.Request
-import okhttp3.RequestBody.Companion.toRequestBody
-import org.json.JSONArray
-import org.json.JSONObject
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Locale
 import java.util.TimeZone
-import java.util.concurrent.TimeUnit
 
 /**
- * Cloud fallback for product extraction. Uses OpenAI's chat completions API
- * with a vision-capable model. Returns null if no API key is configured or the
- * request fails. The caller should keep the on-device result in that case.
+ * Cloud fallback for product extraction. Sends a compressed, base64-encoded
+ * image to the project's backend, which calls OpenAI on the server side.
+ *
+ * The Android app NEVER sees the OpenAI API key. This service only knows
+ * about the backend URL configured at build time.
+ *
+ * Returns null if the backend URL is not configured or the request fails.
  */
 object CloudOcrService {
-    private const val ENDPOINT = "https://api.openai.com/v1/chat/completions"
-    private const val MODEL = "gpt-4o-mini"
 
-    private val client by lazy {
-        OkHttpClient.Builder()
-            .connectTimeout(20, TimeUnit.SECONDS)
-            .readTimeout(40, TimeUnit.SECONDS)
-            .build()
-    }
+    /** True if a non-empty backend URL was provided at build time. */
+    val isConfigured: Boolean get() = BuildConfig.BACKEND_OCR_URL.isNotBlank()
 
-    val isConfigured: Boolean get() = BuildConfig.OPENAI_API_KEY.isNotBlank()
+    suspend fun extract(bitmap: Bitmap, ocrHint: String?): ExtractedFields? =
+        withContext(Dispatchers.IO) {
+            if (!isConfigured) return@withContext null
 
-    suspend fun extract(bitmap: Bitmap, ocrHint: String?): ExtractedFields? = withContext(Dispatchers.IO) {
-        val key = BuildConfig.OPENAI_API_KEY
-        if (key.isBlank()) return@withContext null
+            val base64 = ImageUtils.bitmapToBase64(bitmap)
+            val request = OcrRequest(image = base64, hint = ocrHint?.take(2000))
 
-        val base64 = ImageUtils.bitmapToBase64(bitmap)
-        val sys = "You extract product info from packaging photos. " +
-                "Always respond with strict JSON: {\"name\":string|null,\"manufacturing_date\":\"YYYY-MM-DD\"|null," +
-                "\"expiry_date\":\"YYYY-MM-DD\"|null,\"confidence\":0..1}. No prose, no code fences."
-        val userText = buildString {
-            append("Identify product name, manufacturing date and expiry date from this image. ")
-            append("Output JSON only.")
-            if (!ocrHint.isNullOrBlank()) {
-                append(" Here is OCR text already extracted from the image as a hint: ")
-                append(ocrHint.take(2000))
+            runCatching {
+                OcrApiClient.api.extract(request)
+            }.getOrNull()?.let { resp ->
+                ExtractedFields(
+                    name = resp.name?.takeIf { it.isNotBlank() && it != "null" },
+                    manufacturingDate = parseIsoDate(resp.mfgDate),
+                    expiryDate = parseIsoDate(resp.expDate),
+                    confidence = resp.confidence
+                        .toFloat()
+                        .coerceIn(0f, 1f)
+                        .let { if (it == 0f) 0.7f else it },
+                )
             }
         }
 
-        val body = JSONObject().apply {
-            put("model", MODEL)
-            put("temperature", 0)
-            put("response_format", JSONObject().put("type", "json_object"))
-            put("messages", JSONArray().apply {
-                put(JSONObject().put("role", "system").put("content", sys))
-                put(JSONObject().apply {
-                    put("role", "user")
-                    put("content", JSONArray().apply {
-                        put(JSONObject().put("type", "text").put("text", userText))
-                        put(JSONObject().apply {
-                            put("type", "image_url")
-                            put("image_url", JSONObject().put("url", "data:image/jpeg;base64,$base64"))
-                        })
-                    })
-                })
-            })
-        }
-
-        val req = Request.Builder()
-            .url(ENDPOINT)
-            .header("Authorization", "Bearer $key")
-            .post(body.toString().toRequestBody("application/json".toMediaType()))
-            .build()
-
-        return@withContext runCatching {
-            client.newCall(req).execute().use { resp ->
-                if (!resp.isSuccessful) return@use null
-                val raw = resp.body?.string() ?: return@use null
-                val content = JSONObject(raw)
-                    .getJSONArray("choices").getJSONObject(0)
-                    .getJSONObject("message").getString("content")
-                parsePayload(content)
-            }
-        }.getOrNull()
+    private val isoDayFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US).apply {
+        timeZone = TimeZone.getTimeZone("UTC")
     }
-
-    private fun parsePayload(content: String): ExtractedFields? {
-        val cleaned = content.trim()
-            .removePrefix("```json").removePrefix("```").removeSuffix("```").trim()
-        return try {
-            val obj = JSONObject(cleaned)
-            ExtractedFields(
-                name = obj.optString("name").takeIf { it.isNotBlank() && it != "null" },
-                manufacturingDate = parseIso(obj.optString("manufacturing_date")),
-                expiryDate = parseIso(obj.optString("expiry_date")),
-                confidence = obj.optDouble("confidence", 0.7).toFloat().coerceIn(0f, 1f)
-            )
-        } catch (_: Exception) { null }
-    }
-
-    private val isoFormat = SimpleDateFormat("yyyy-MM-dd", Locale.US).apply {
+    private val isoMonthFormat = SimpleDateFormat("yyyy-MM", Locale.US).apply {
         timeZone = TimeZone.getTimeZone("UTC")
     }
 
-    private fun parseIso(s: String?): Long? {
+    /** Backend returns ISO `YYYY-MM-DD` (or `YYYY-MM` when only month is known). */
+    private fun parseIsoDate(s: String?): Long? {
         if (s.isNullOrBlank() || s == "null") return null
-        return try {
-            val d = isoFormat.parse(s) ?: return null
-            // Snap to UTC midnight already
-            val cal = java.util.Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply { time = d }
+        val fmt = when {
+            Regex("""^\d{4}-\d{2}-\d{2}$""").matches(s) -> isoDayFormat
+            Regex("""^\d{4}-\d{2}$""").matches(s) -> isoMonthFormat
+            else -> return null
+        }
+        return runCatching {
+            val d = fmt.parse(s) ?: return null
+            val cal = Calendar.getInstance(TimeZone.getTimeZone("UTC")).apply { time = d }
             DateUtils.toUtcMidnight(
-                cal.get(java.util.Calendar.YEAR),
-                cal.get(java.util.Calendar.MONTH),
-                cal.get(java.util.Calendar.DAY_OF_MONTH)
+                cal.get(Calendar.YEAR),
+                cal.get(Calendar.MONTH),
+                cal.get(Calendar.DAY_OF_MONTH)
             )
-        } catch (_: Exception) { null }
+        }.getOrNull()
     }
 }

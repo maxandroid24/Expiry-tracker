@@ -1,0 +1,114 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Expiry Tracker — OCR Backend</title>
+<style>
+  :root { color-scheme: light dark; }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    background: #0b0d10; color: #e7ecf1; line-height: 1.55;
+  }
+  .wrap { max-width: 880px; margin: 0 auto; padding: 40px 24px 80px; }
+  header { display: flex; align-items: center; gap: 16px; padding-bottom: 24px; border-bottom: 1px solid #232a31; }
+  .logo { width: 56px; height: 56px; border-radius: 14px; background: linear-gradient(135deg,#3ddc84,#1f8a55); display:flex; align-items:center; justify-content:center; font-size: 28px; }
+  h1 { margin: 0; font-size: 24px; }
+  .sub { color: #8a96a3; font-size: 14px; margin-top: 2px; }
+  .card { background: #14181d; border: 1px solid #232a31; border-radius: 14px; padding: 20px 22px; margin-top: 20px; }
+  .pill { display:inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; letter-spacing: .02em; }
+  .pill.ok   { background: rgba(61,220,132,.12); color: #3ddc84; border: 1px solid rgba(61,220,132,.35); }
+  .pill.warn { background: rgba(255,180,84,.12); color: #ffb454; border: 1px solid rgba(255,180,84,.35); }
+  h2 { font-size: 16px; margin: 0 0 10px; }
+  ul, ol { padding-left: 20px; margin: 8px 0; }
+  li { margin: 4px 0; }
+  code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; }
+  pre { background: #0f1318; border: 1px solid #232a31; border-radius: 10px; padding: 14px 16px; overflow-x: auto; margin: 10px 0 4px; }
+  code { background: #0f1318; padding: 1px 6px; border-radius: 5px; }
+  .muted { color: #8a96a3; font-size: 13px; }
+  .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-top: 8px; }
+  .kv { display: grid; grid-template-columns: 160px 1fr; gap: 6px 16px; font-size: 14px; margin-top: 8px; }
+  .kv > div:nth-child(odd) { color: #8a96a3; }
+  .ep { font-weight: 600; color: #6cb8ff; }
+</style>
+</head>
+<body>
+  <div class="wrap">
+    <header>
+      <div class="logo">📦</div>
+      <div>
+        <h1>Expiry Tracker — OCR Backend</h1>
+        <div class="sub">Node.js · Express · OpenAI vision proxy</div>
+      </div>
+    </header>
+
+    <div class="card">
+      <span id="health-pill" class="pill warn">Checking…</span>
+      <h2 style="margin-top:14px">Backend status</h2>
+      <div class="kv" id="health-kv">
+        <div>Endpoint</div><div><code>/health</code></div>
+        <div>OpenAI configured</div><div id="openai-state">—</div>
+        <div>Model</div><div id="model-state">—</div>
+        <div>Uptime</div><div id="uptime-state">—</div>
+      </div>
+    </div>
+
+    <div class="card">
+      <h2>API</h2>
+      <p>The Android app talks to this single endpoint:</p>
+      <p class="ep">POST /ocr</p>
+      <p>Request body</p>
+<pre>{
+  "image": "&lt;base64-encoded JPEG bytes, &lt;= 8 MB&gt;",
+  "hint":  "&lt;optional ML Kit OCR text&gt;"
+}</pre>
+      <p>Successful response</p>
+<pre>{
+  "name":       "Whole Wheat Bread",
+  "mfgDate":    "2025-01-12",
+  "expDate":    "2025-02-08",
+  "confidence": 0.92
+}</pre>
+      <p class="muted">
+        Dates are ISO format: <code>YYYY-MM-DD</code> when the day is printed,
+        <code>YYYY-MM</code> when only month/year are visible. Any field can be
+        <code>null</code>. The endpoint is rate limited to 20 requests per minute per IP.
+      </p>
+    </div>
+
+    <div class="card">
+      <span class="pill ok">Security</span>
+      <h2 style="margin-top:14px">Why an OCR backend?</h2>
+      <ul>
+        <li>The OpenAI API key lives <strong>only</strong> on the backend (Replit Secrets / env var).</li>
+        <li>The Android app contains <strong>no</strong> hardcoded secrets and no <code>BuildConfig</code> API key.</li>
+        <li>The app only knows the URL of this backend — set via <code>BACKEND_OCR_URL</code> in <code>local.properties</code>.</li>
+        <li>Body size is capped, base64 input is validated, and rate limiting is enforced per IP.</li>
+      </ul>
+    </div>
+
+    <p class="muted" style="margin-top:28px;text-align:center">
+      Replit · Expiry Tracker OCR backend
+    </p>
+  </div>
+
+<script>
+  fetch("/health").then(r => r.json()).then(j => {
+    const pill = document.getElementById("health-pill");
+    pill.textContent = j.ok ? "Online" : "Offline";
+    pill.className = "pill " + (j.ok ? "ok" : "warn");
+    document.getElementById("openai-state").textContent = j.openaiConfigured ? "yes" : "no (set OPENAI_API_KEY)";
+    document.getElementById("model-state").textContent = j.model || "—";
+    const s = Math.round(j.uptime || 0);
+    const m = Math.floor(s / 60), sec = s % 60;
+    document.getElementById("uptime-state").textContent = `${m}m ${sec}s`;
+  }).catch(() => {
+    const pill = document.getElementById("health-pill");
+    pill.textContent = "Offline";
+    pill.className = "pill warn";
+  });
+</script>
+</body>
+</html>

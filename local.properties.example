@@ -1,7 +1,17 @@
-# Copy this file to local.properties and fill in your values.
-# Android SDK location (Android Studio sets this automatically)
-sdk.dir=/path/to/your/Android/Sdk
+# Local build configuration for the Expiry Tracker Android app.
+# Copy this file to `local.properties` and edit the values you need. Android
+# Studio also writes the SDK location into `local.properties` automatically on
+# the first Gradle sync.
+#
+# IMPORTANT — this file does NOT contain any API keys.
+#
+# All OpenAI calls go through the project's backend service (see ./backend).
+# The OPENAI_API_KEY only lives on the backend (Replit Secrets / env var).
+# The Android app only needs to know the URL of that backend.
+#
+# Examples:
+#   - Android emulator hitting the backend on the host machine: http://10.0.2.2:5000/
+#   - Physical device on the same Wi-Fi as the dev backend:     http://192.168.1.42:5000/
+#   - Public Replit deployment of the backend:                  https://<your-repl>.replit.app/
 
-# Optional: OpenAI API key for the cloud OCR fallback.
-# If left blank, the app will only use on-device ML Kit OCR.
-OPENAI_API_KEY=
+BACKEND_OCR_URL=http://10.0.2.2:5000/

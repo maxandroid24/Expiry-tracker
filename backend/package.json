@@ -1,0 +1,19 @@
+{
+  "name": "expiry-tracker-backend",
+  "version": "1.0.0",
+  "description": "OCR backend for the Expiry Tracker Android app. Proxies image requests to OpenAI so the API key never leaves the server.",
+  "type": "commonjs",
+  "main": "server.js",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "node server.js",
+    "dev": "node server.js"
+  },
+  "dependencies": {
+    "express": "^4.21.1",
+    "express-rate-limit": "^7.4.1",
+    "morgan": "^1.10.0"
+  }
+}
