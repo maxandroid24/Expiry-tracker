@@ -4,6 +4,7 @@ const express = require("express");
 const rateLimit = require("express-rate-limit");
 const morgan = require("morgan");
 const path = require("path");
+const scanLog = require("./scanLog");
 
 const PORT = parseInt(process.env.PORT || "5000", 10);
 const HOST = "0.0.0.0";
@@ -35,6 +36,14 @@ app.get("/health", (_req, res) => {
     openaiConfigured: Boolean(OPENAI_API_KEY),
     model: OPENAI_MODEL,
     uptime: process.uptime(),
+  });
+});
+
+app.get("/scans", (req, res) => {
+  const limit = req.query.limit ? parseInt(req.query.limit, 10) : 50;
+  res.json({
+    stats: scanLog.stats(),
+    entries: scanLog.list({ limit }),
   });
 });
 
@@ -106,6 +115,8 @@ app.post("/ocr", ocrLimiter, async (req, res) => {
 
   const controller = new AbortController();
   const timeout = setTimeout(() => controller.abort(), 45_000);
+  const startedAt = Date.now();
+  const ip = req.ip;
 
   try {
     const upstream = await fetch(OPENAI_ENDPOINT, {
@@ -121,6 +132,10 @@ app.post("/ocr", ocrLimiter, async (req, res) => {
     if (!upstream.ok) {
       const detail = await safeReadText(upstream);
       console.error("OpenAI error", upstream.status, detail);
+      scanLog.record({
+        imageBase64: cleaned, ip, model: OPENAI_MODEL,
+        durationMs: Date.now() - startedAt, status: `upstream_${upstream.status}`,
+      });
       return res.status(502).json({
         error: "upstream_failed",
         detail: `OpenAI returned ${upstream.status}.`,
@@ -130,6 +145,10 @@ app.post("/ocr", ocrLimiter, async (req, res) => {
     const json = await upstream.json();
     const content = json?.choices?.[0]?.message?.content;
     if (!content) {
+      scanLog.record({
+        imageBase64: cleaned, ip, model: OPENAI_MODEL,
+        durationMs: Date.now() - startedAt, status: "upstream_empty",
+      });
       return res.status(502).json({
         error: "upstream_empty",
         detail: "OpenAI did not return a message.",
@@ -138,6 +157,10 @@ app.post("/ocr", ocrLimiter, async (req, res) => {
 
     const extracted = parseExtraction(content);
     if (!extracted) {
+      scanLog.record({
+        imageBase64: cleaned, ip, model: OPENAI_MODEL,
+        durationMs: Date.now() - startedAt, status: "parse_failed",
+      });
       return res.status(502).json({
         error: "parse_failed",
         detail: "Could not parse extraction JSON from the model.",
@@ -145,12 +168,24 @@ app.post("/ocr", ocrLimiter, async (req, res) => {
       });
     }
 
+    scanLog.record({
+      imageBase64: cleaned, ip, model: OPENAI_MODEL,
+      durationMs: Date.now() - startedAt, status: "ok", fields: extracted,
+    });
     return res.json(extracted);
   } catch (err) {
     if (err.name === "AbortError") {
+      scanLog.record({
+        imageBase64: cleaned, ip, model: OPENAI_MODEL,
+        durationMs: Date.now() - startedAt, status: "upstream_timeout",
+      });
       return res.status(504).json({ error: "upstream_timeout", detail: "OpenAI request timed out." });
     }
     console.error("OCR call failed", err);
+    scanLog.record({
+      imageBase64: cleaned, ip, model: OPENAI_MODEL,
+      durationMs: Date.now() - startedAt, status: "internal_error",
+    });
     return res.status(500).json({ error: "internal_error", detail: "Unexpected server error." });
   } finally {
     clearTimeout(timeout);

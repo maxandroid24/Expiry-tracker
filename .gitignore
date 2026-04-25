@@ -1,0 +1,24 @@
+# Gradle / Android
+.gradle/
+build/
+local.properties
+captures/
+*.apk
+*.ap_
+*.dex
+
+# Kotlin
+.kotlin/
+
+# IDE
+.idea/
+*.iml
+.vscode/
+
+# Node / backend
+node_modules/
+backend/data/scans.jsonl
+
+# OS
+.DS_Store
+Thumbs.db

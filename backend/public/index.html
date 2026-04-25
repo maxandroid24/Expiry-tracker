@@ -21,6 +21,7 @@
   .pill { display:inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; letter-spacing: .02em; }
   .pill.ok   { background: rgba(61,220,132,.12); color: #3ddc84; border: 1px solid rgba(61,220,132,.35); }
   .pill.warn { background: rgba(255,180,84,.12); color: #ffb454; border: 1px solid rgba(255,180,84,.35); }
+  .pill.err  { background: rgba(255,84,84,.12);  color: #ff6464; border: 1px solid rgba(255,84,84,.35); }
   h2 { font-size: 16px; margin: 0 0 10px; }
   ul, ol { padding-left: 20px; margin: 8px 0; }
   li { margin: 4px 0; }
@@ -28,10 +29,21 @@
   pre { background: #0f1318; border: 1px solid #232a31; border-radius: 10px; padding: 14px 16px; overflow-x: auto; margin: 10px 0 4px; }
   code { background: #0f1318; padding: 1px 6px; border-radius: 5px; }
   .muted { color: #8a96a3; font-size: 13px; }
-  .row { display: flex; gap: 12px; flex-wrap: wrap; align-items: center; margin-top: 8px; }
   .kv { display: grid; grid-template-columns: 160px 1fr; gap: 6px 16px; font-size: 14px; margin-top: 8px; }
   .kv > div:nth-child(odd) { color: #8a96a3; }
   .ep { font-weight: 600; color: #6cb8ff; }
+  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 12px 0 6px; }
+  .stat { background: #0f1318; border: 1px solid #232a31; border-radius: 10px; padding: 10px 12px; }
+  .stat .num { font-size: 20px; font-weight: 700; }
+  .stat .lbl { color: #8a96a3; font-size: 12px; margin-top: 2px; }
+  .scan { display: grid; grid-template-columns: 88px 1fr auto; gap: 12px; align-items: center; padding: 10px 0; border-top: 1px solid #232a31; }
+  .scan:first-child { border-top: 0; }
+  .scan .when { color: #8a96a3; font-size: 12px; font-family: ui-monospace, monospace; }
+  .scan .name { font-weight: 600; }
+  .scan .meta { color: #8a96a3; font-size: 12px; }
+  .scan .right { text-align: right; font-size: 12px; color: #8a96a3; }
+  .row { display: flex; gap: 8px; align-items: center; }
+  .empty { color: #8a96a3; padding: 12px 0; font-size: 14px; }
 </style>
 </head>
 <body>
@@ -56,6 +68,25 @@
     </div>
 
     <div class="card">
+      <div class="row" style="justify-content:space-between">
+        <h2 style="margin:0">Scan history</h2>
+        <span class="muted">last 25 · auto-refresh 10s</span>
+      </div>
+      <div class="stats" id="scan-stats">
+        <div class="stat"><div class="num" id="s-total">—</div><div class="lbl">Total scans</div></div>
+        <div class="stat"><div class="num" id="s-ok">—</div><div class="lbl">Successful</div></div>
+        <div class="stat"><div class="num" id="s-failed">—</div><div class="lbl">Failed</div></div>
+        <div class="stat"><div class="num" id="s-conf">—</div><div class="lbl">Avg confidence</div></div>
+      </div>
+      <div id="scan-list"><div class="empty">No scans recorded yet.</div></div>
+      <p class="muted" style="margin-top:14px">
+        Each entry stores a SHA-256 of the image bytes, a hashed client IP, the model
+        used, the structured fields returned, and the upstream latency. Raw images are
+        <strong>not</strong> persisted.
+      </p>
+    </div>
+
+    <div class="card">
       <h2>API</h2>
       <p>The Android app talks to this single endpoint:</p>
       <p class="ep">POST /ocr</p>
@@ -71,6 +102,7 @@
   "expDate":    "2025-02-08",
   "confidence": 0.92
 }</pre>
+      <p>Audit log: <code>GET /scans?limit=50</code></p>
       <p class="muted">
         Dates are ISO format: <code>YYYY-MM-DD</code> when the day is printed,
         <code>YYYY-MM</code> when only month/year are visible. Any field can be
@@ -95,20 +127,68 @@
   </div>
 
 <script>
-  fetch("/health").then(r => r.json()).then(j => {
-    const pill = document.getElementById("health-pill");
-    pill.textContent = j.ok ? "Online" : "Offline";
-    pill.className = "pill " + (j.ok ? "ok" : "warn");
-    document.getElementById("openai-state").textContent = j.openaiConfigured ? "yes" : "no (set OPENAI_API_KEY)";
-    document.getElementById("model-state").textContent = j.model || "—";
-    const s = Math.round(j.uptime || 0);
-    const m = Math.floor(s / 60), sec = s % 60;
-    document.getElementById("uptime-state").textContent = `${m}m ${sec}s`;
-  }).catch(() => {
-    const pill = document.getElementById("health-pill");
-    pill.textContent = "Offline";
-    pill.className = "pill warn";
-  });
+  function fmtTime(iso) {
+    const d = new Date(iso);
+    const pad = (n) => String(n).padStart(2, "0");
+    return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
+  }
+  function statusPill(s) {
+    if (s === "ok") return '<span class="pill ok">ok</span>';
+    return `<span class="pill err">${s}</span>`;
+  }
+  function loadHealth() {
+    return fetch("/health").then(r => r.json()).then(j => {
+      const pill = document.getElementById("health-pill");
+      pill.textContent = j.ok ? "Online" : "Offline";
+      pill.className = "pill " + (j.ok ? "ok" : "warn");
+      document.getElementById("openai-state").textContent = j.openaiConfigured ? "yes" : "no (set OPENAI_API_KEY)";
+      document.getElementById("model-state").textContent = j.model || "—";
+      const s = Math.round(j.uptime || 0);
+      const m = Math.floor(s / 60), sec = s % 60;
+      document.getElementById("uptime-state").textContent = `${m}m ${sec}s`;
+    }).catch(() => {
+      const pill = document.getElementById("health-pill");
+      pill.textContent = "Offline";
+      pill.className = "pill warn";
+    });
+  }
+  function loadScans() {
+    return fetch("/scans?limit=25").then(r => r.json()).then(j => {
+      const stats = j.stats || {};
+      document.getElementById("s-total").textContent = stats.total ?? 0;
+      document.getElementById("s-ok").textContent = stats.ok ?? 0;
+      document.getElementById("s-failed").textContent = stats.failed ?? 0;
+      document.getElementById("s-conf").textContent = stats.avgConfidence == null ? "—" : stats.avgConfidence;
+
+      const list = document.getElementById("scan-list");
+      const entries = j.entries || [];
+      if (!entries.length) {
+        list.innerHTML = '<div class="empty">No scans recorded yet.</div>';
+        return;
+      }
+      list.innerHTML = entries.map(e => {
+        const f = e.fields || {};
+        const name = f.name || '<span class="muted">(no name)</span>';
+        const dates = [f.mfgDate ? `MFG ${f.mfgDate}` : null, f.expDate ? `EXP ${f.expDate}` : null]
+          .filter(Boolean).join(" · ") || '<span class="muted">no dates</span>';
+        const conf = typeof f.confidence === "number" ? `· conf ${f.confidence.toFixed(2)}` : "";
+        return `
+          <div class="scan">
+            <div class="when">${fmtTime(e.timestamp)}</div>
+            <div>
+              <div class="name">${name}</div>
+              <div class="meta">${dates} ${conf}</div>
+            </div>
+            <div class="right">
+              ${statusPill(e.status)}<br>
+              <span class="muted">${e.durationMs ?? "–"} ms · img ${e.imageHash || "?"}</span>
+            </div>
+          </div>`;
+      }).join("");
+    }).catch(() => {});
+  }
+  loadHealth(); loadScans();
+  setInterval(() => { loadHealth(); loadScans(); }, 10000);
 </script>
 </body>
 </html>
