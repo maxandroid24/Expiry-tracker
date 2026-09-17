@@ -1,0 +1,296 @@
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+
+:root {
+  --glass-bg: rgba(255, 255, 255, 0.12);
+  --glass-border: rgba(255, 255, 255, 0.2);
+  --glass-shadow: rgba(0, 0, 0, 0.15);
+  --text-primary: rgba(255, 255, 255, 0.95);
+  --text-secondary: rgba(255, 255, 255, 0.6);
+  --accent: #007aff;
+  --accent-glow: rgba(0, 122, 255, 0.4);
+  --operator-bg: rgba(255, 149, 0, 0.25);
+  --operator-hover: rgba(255, 149, 0, 0.4);
+  --func-bg: rgba(255, 255, 255, 0.18);
+  --func-hover: rgba(255, 255, 255, 0.3);
+  --num-bg: rgba(255, 255, 255, 0.08);
+  --num-hover: rgba(255, 255, 255, 0.18);
+  --num-active: rgba(255, 255, 255, 0.3);
+}
+
+@media (prefers-color-scheme: light) {
+  :root {
+    --glass-bg: rgba(255, 255, 255, 0.7);
+    --glass-border: rgba(255, 255, 255, 0.5);
+    --glass-shadow: rgba(0, 0, 0, 0.08);
+    --text-primary: rgba(0, 0, 0, 0.9);
+    --text-secondary: rgba(0, 0, 0, 0.5);
+    --func-bg: rgba(0, 0, 0, 0.06);
+    --func-hover: rgba(0, 0, 0, 0.12);
+    --num-bg: rgba(0, 0, 0, 0.04);
+    --num-hover: rgba(0, 0, 0, 0.08);
+    --num-active: rgba(0, 0, 0, 0.15);
+  }
+}
+
+body {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-family: -apple-system, BlinkMacSystemFont, 'SF Pro Display', 'Helvetica Neue', sans-serif;
+  background: #000;
+  overflow: hidden;
+  position: relative;
+}
+
+.background {
+  position: fixed;
+  inset: 0;
+  background: 
+    radial-gradient(ellipse 80% 50% at 50% -20%, rgba(0, 122, 255, 0.15), transparent),
+    radial-gradient(ellipse 60% 40% at 80% 100%, rgba(255, 149, 0, 0.1), transparent),
+    radial-gradient(ellipse 50% 30% at 10% 80%, rgba(52, 199, 89, 0.08), transparent),
+    linear-gradient(180deg, #0a0a0f 0%, #1a1a2e 50%, #0f0f1a 100%);
+  animation: backgroundShift 20s ease-in-out infinite;
+}
+
+@keyframes backgroundShift {
+  0%, 100% { transform: scale(1) rotate(0deg); }
+  50% { transform: scale(1.05) rotate(1deg); }
+}
+
+.calculator-container {
+  position: relative;
+  z-index: 1;
+  width: 100%;
+  max-width: 380px;
+  padding: 24px 16px 32px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.calculator-glass {
+  width: 100%;
+  border-radius: 32px;
+  background: var(--glass-bg);
+  backdrop-filter: blur(40px) saturate(180%);
+  -webkit-backdrop-filter: blur(40px) saturate(180%);
+  border: 1px solid var(--glass-border);
+  box-shadow: 
+    0 4px 24px var(--glass-shadow),
+    0 0 0 1px rgba(255, 255, 255, 0.05) inset,
+    0 1px 0 rgba(255, 255, 255, 0.1) inset;
+  padding: 24px;
+  position: relative;
+  overflow: hidden;
+}
+
+.calculator-glass::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  height: 1px;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.4), transparent);
+}
+
+.display {
+  margin-bottom: 20px;
+  min-height: 100px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-end;
+  align-items: flex-end;
+  padding: 8px 4px;
+  position: relative;
+}
+
+.expression {
+  font-size: 20px;
+  font-weight: 400;
+  color: var(--text-secondary);
+  min-height: 28px;
+  letter-spacing: -0.3px;
+  margin-bottom: 4px;
+  word-break: break-all;
+  max-width: 100%;
+}
+
+.result {
+  font-size: 64px;
+  font-weight: 200;
+  color: var(--text-primary);
+  letter-spacing: -2px;
+  line-height: 1;
+  font-variant-numeric: tabular-nums;
+  transition: transform 0.15s ease, opacity 0.15s ease;
+}
+
+.result.updating {
+  transform: scale(0.98);
+  opacity: 0.7;
+}
+
+.keypad {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 12px;
+}
+
+.key {
+  appearance: none;
+  border: none;
+  border-radius: 20px;
+  font-size: 28px;
+  font-weight: 500;
+  font-family: inherit;
+  color: var(--text-primary);
+  background: var(--num-bg);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  padding: 20px 0;
+  cursor: pointer;
+  transition: all 0.12s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.key::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background: radial-gradient(circle at center, rgba(255, 255, 255, 0.15) 0%, transparent 70%);
+  opacity: 0;
+  transition: opacity 0.15s ease;
+}
+
+.key:hover {
+  background: var(--num-hover);
+  transform: scale(1.02);
+}
+
+.key:active {
+  background: var(--num-active);
+  transform: scale(0.98);
+}
+
+.key:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px var(--accent-glow);
+}
+
+.key:active::after {
+  opacity: 1;
+  transition: opacity 0s;
+}
+
+.key.func {
+  background: var(--func-bg);
+  color: var(--text-primary);
+  font-weight: 600;
+  font-size: 22px;
+}
+
+.key.func:hover {
+  background: var(--func-hover);
+}
+
+.key.operator {
+  background: var(--operator-bg);
+  color: #ff9500;
+  font-weight: 600;
+}
+
+.key.operator:hover {
+  background: var(--operator-hover);
+}
+
+.key.operator.active {
+  background: #ff9500;
+  color: #fff;
+}
+
+.key.equals {
+  background: linear-gradient(135deg, #007aff 0%, #0056cc 100%);
+  color: #fff;
+  box-shadow: 0 4px 16px rgba(0, 122, 255, 0.3);
+}
+
+.key.equals:hover {
+  background: linear-gradient(135deg, #0084ff 0%, #0066ee 100%);
+  box-shadow: 0 6px 20px rgba(0, 122, 255, 0.4);
+}
+
+.key.equals:active {
+  background: linear-gradient(135deg, #0056cc 0%, #0044aa 100%);
+}
+
+.attribution {
+  margin-top: 20px;
+  font-size: 13px;
+  color: var(--text-secondary);
+  font-weight: 400;
+  letter-spacing: 0.2px;
+}
+
+@media (max-width: 400px) {
+  .calculator-glass {
+    border-radius: 24px;
+    padding: 20px 16px;
+  }
+  
+  .result {
+    font-size: 52px;
+  }
+  
+  .key {
+    font-size: 24px;
+    padding: 18px 0;
+    border-radius: 18px;
+  }
+  
+  .keypad {
+    gap: 10px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+@keyframes keyPress {
+  0% { transform: scale(1); }
+  50% { transform: scale(0.95); }
+  100% { transform: scale(1); }
+}
+
+.key.pressed {
+  animation: keyPress 0.1s ease;
+}
+
+.ripple {
+  position: absolute;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.3);
+  transform: scale(0);
+  animation: rippleEffect 0.4s ease-out;
+  pointer-events: none;
+}
+
+@keyframes rippleEffect {
+  to {
+    transform: scale(3);
+    opacity: 0;
+  }
+}

@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Calculator - Liquid Glass</title>
+  <link rel="stylesheet" href="calculator.css">
+</head>
+<body>
+  <div class="background"></div>
+  <main class="calculator-container">
+    <div class="calculator-glass">
+      <div class="display">
+        <div class="expression" id="expression"></div>
+        <div class="result" id="result">0</div>
+      </div>
+      <div class="keypad">
+        <button class="key func" data-action="clear">AC</button>
+        <button class="key func" data-action="toggle-sign">±</button>
+        <button class="key func" data-action="percent">%</button>
+        <button class="key operator" data-action="divide">÷</button>
+        
+        <button class="key num" data-value="7">7</button>
+        <button class="key num" data-value="8">8</button>
+        <button class="key num" data-value="9">9</button>
+        <button class="key operator" data-action="multiply">×</button>
+        
+        <button class="key num" data-value="4">4</button>
+        <button class="key num" data-value="5">5</button>
+        <button class="key num" data-value="6">6</button>
+        <button class="key operator" data-action="subtract">−</button>
+        
+        <button class="key num" data-value="1">1</button>
+        <button class="key num" data-value="2">2</button>
+        <button class="key num" data-value="3">3</button>
+        <button class="key operator" data-action="add">+</button>
+        
+        <button class="key num" data-value="0" style="grid-column: span 2;">0</button>
+        <button class="key num" data-value=".">.</button>
+        <button class="key operator equals" data-action="equals">=</button>
+      </div>
+    </div>
+    <p class="attribution">Liquid Glass Calculator</p>
+  </main>
+  <script src="calculator.js"></script>
+</body>
+</html>
