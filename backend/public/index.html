@@ -1,194 +1,1287 @@
-<!doctype html>
-<html lang="en">
+<!DOCTYPE html>
+<html lang="en" data-theme="dark">
 <head>
-<meta charset="utf-8" />
-<meta name="viewport" content="width=device-width,initial-scale=1" />
-<title>Expiry Tracker — OCR Backend</title>
-<style>
-  :root { color-scheme: light dark; }
-  * { box-sizing: border-box; }
-  body {
-    margin: 0;
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-    background: #0b0d10; color: #e7ecf1; line-height: 1.55;
-  }
-  .wrap { max-width: 880px; margin: 0 auto; padding: 40px 24px 80px; }
-  header { display: flex; align-items: center; gap: 16px; padding-bottom: 24px; border-bottom: 1px solid #232a31; }
-  .logo { width: 56px; height: 56px; border-radius: 14px; background: linear-gradient(135deg,#3ddc84,#1f8a55); display:flex; align-items:center; justify-content:center; font-size: 28px; }
-  h1 { margin: 0; font-size: 24px; }
-  .sub { color: #8a96a3; font-size: 14px; margin-top: 2px; }
-  .card { background: #14181d; border: 1px solid #232a31; border-radius: 14px; padding: 20px 22px; margin-top: 20px; }
-  .pill { display:inline-block; padding: 3px 10px; border-radius: 999px; font-size: 12px; font-weight: 600; letter-spacing: .02em; }
-  .pill.ok   { background: rgba(61,220,132,.12); color: #3ddc84; border: 1px solid rgba(61,220,132,.35); }
-  .pill.warn { background: rgba(255,180,84,.12); color: #ffb454; border: 1px solid rgba(255,180,84,.35); }
-  .pill.err  { background: rgba(255,84,84,.12);  color: #ff6464; border: 1px solid rgba(255,84,84,.35); }
-  h2 { font-size: 16px; margin: 0 0 10px; }
-  ul, ol { padding-left: 20px; margin: 8px 0; }
-  li { margin: 4px 0; }
-  code, pre { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; }
-  pre { background: #0f1318; border: 1px solid #232a31; border-radius: 10px; padding: 14px 16px; overflow-x: auto; margin: 10px 0 4px; }
-  code { background: #0f1318; padding: 1px 6px; border-radius: 5px; }
-  .muted { color: #8a96a3; font-size: 13px; }
-  .kv { display: grid; grid-template-columns: 160px 1fr; gap: 6px 16px; font-size: 14px; margin-top: 8px; }
-  .kv > div:nth-child(odd) { color: #8a96a3; }
-  .ep { font-weight: 600; color: #6cb8ff; }
-  .stats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin: 12px 0 6px; }
-  .stat { background: #0f1318; border: 1px solid #232a31; border-radius: 10px; padding: 10px 12px; }
-  .stat .num { font-size: 20px; font-weight: 700; }
-  .stat .lbl { color: #8a96a3; font-size: 12px; margin-top: 2px; }
-  .scan { display: grid; grid-template-columns: 88px 1fr auto; gap: 12px; align-items: center; padding: 10px 0; border-top: 1px solid #232a31; }
-  .scan:first-child { border-top: 0; }
-  .scan .when { color: #8a96a3; font-size: 12px; font-family: ui-monospace, monospace; }
-  .scan .name { font-weight: 600; }
-  .scan .meta { color: #8a96a3; font-size: 12px; }
-  .scan .right { text-align: right; font-size: 12px; color: #8a96a3; }
-  .row { display: flex; gap: 8px; align-items: center; }
-  .empty { color: #8a96a3; padding: 12px 0; font-size: 14px; }
-</style>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+  <title>Liquid Glass Calculator</title>
+  <style>
+    :root {
+      --bg-gradient-1: #0a0c1b;
+      --bg-gradient-2: #1a1c38;
+      --blob-1: #3a1c71;
+      --blob-2: #d76d77;
+      --blob-3: #ffaf7b;
+      --blob-4: #240b36;
+      --glass-bg: rgba(255, 255, 255, 0.08);
+      --glass-border: rgba(255, 255, 255, 0.18);
+      --glass-shine: rgba(255, 255, 255, 0.35);
+      --glass-shadow: rgba(0, 0, 0, 0.45);
+      --text-main: #ffffff;
+      --text-sub: rgba(255, 255, 255, 0.65);
+      --btn-num-bg: rgba(255, 255, 255, 0.12);
+      --btn-num-hover: rgba(255, 255, 255, 0.22);
+      --btn-num-text: #ffffff;
+      --btn-func-bg: rgba(255, 255, 255, 0.22);
+      --btn-func-hover: rgba(255, 255, 255, 0.32);
+      --btn-func-text: #ffffff;
+      --btn-op-bg: linear-gradient(135deg, rgba(255, 159, 10, 0.9), rgba(255, 115, 0, 0.85));
+      --btn-op-hover: linear-gradient(135deg, rgba(255, 175, 45, 0.95), rgba(255, 135, 20, 0.9));
+      --btn-op-active: #ffffff;
+      --btn-op-active-text: #ff9500;
+      --btn-op-text: #ffffff;
+      --accent-glow: rgba(255, 159, 10, 0.4);
+      --history-bg: rgba(18, 20, 32, 0.75);
+    }
+
+    [data-theme="light"] {
+      --bg-gradient-1: #e2e8f0;
+      --bg-gradient-2: #cbd5e1;
+      --blob-1: #a855f7;
+      --blob-2: #38bdf8;
+      --blob-3: #f43f5e;
+      --blob-4: #fbbf24;
+      --glass-bg: rgba(255, 255, 255, 0.45);
+      --glass-border: rgba(255, 255, 255, 0.65);
+      --glass-shine: rgba(255, 255, 255, 0.8);
+      --glass-shadow: rgba(30, 41, 59, 0.15);
+      --text-main: #0f172a;
+      --text-sub: rgba(15, 23, 42, 0.6);
+      --btn-num-bg: rgba(255, 255, 255, 0.55);
+      --btn-num-hover: rgba(255, 255, 255, 0.8);
+      --btn-num-text: #0f172a;
+      --btn-func-bg: rgba(226, 232, 240, 0.75);
+      --btn-func-hover: rgba(203, 213, 225, 0.9);
+      --btn-func-text: #0f172a;
+      --btn-op-bg: linear-gradient(135deg, rgba(255, 149, 0, 0.95), rgba(255, 115, 0, 0.9));
+      --btn-op-hover: linear-gradient(135deg, rgba(255, 165, 30, 1), rgba(255, 130, 0, 0.95));
+      --btn-op-active: #0f172a;
+      --btn-op-active-text: #ffffff;
+      --btn-op-text: #ffffff;
+      --accent-glow: rgba(255, 149, 0, 0.35);
+      --history-bg: rgba(248, 250, 252, 0.85);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      user-select: none;
+      -webkit-user-select: none;
+      font-family: -apple-system, BlinkMacSystemFont, "SF Pro Display", "SF Pro Text", "Helvetica Neue", Helvetica, Arial, sans-serif;
+    }
+
+    body {
+      min-height: 100vh;
+      width: 100vw;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: linear-gradient(135deg, var(--bg-gradient-1), var(--bg-gradient-2));
+      overflow: hidden;
+      position: relative;
+      color: var(--text-main);
+      transition: background 0.5s ease;
+    }
+
+    /* Ambient Liquid Background Animation */
+    .ambient-canvas {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      z-index: 0;
+      filter: blur(60px);
+      opacity: 0.85;
+      pointer-events: none;
+    }
+
+    .blob {
+      position: absolute;
+      border-radius: 50%;
+      animation: floatAround 18s infinite alternate ease-in-out;
+    }
+
+    .blob-1 {
+      width: 420px;
+      height: 420px;
+      background: var(--blob-1);
+      top: 10%;
+      left: 15%;
+      animation-duration: 22s;
+    }
+
+    .blob-2 {
+      width: 380px;
+      height: 380px;
+      background: var(--blob-2);
+      bottom: 12%;
+      right: 18%;
+      animation-duration: 18s;
+      animation-delay: -5s;
+    }
+
+    .blob-3 {
+      width: 300px;
+      height: 300px;
+      background: var(--blob-3);
+      top: 45%;
+      right: 25%;
+      animation-duration: 25s;
+      animation-delay: -9s;
+    }
+
+    .blob-4 {
+      width: 350px;
+      height: 350px;
+      background: var(--blob-4);
+      bottom: 30%;
+      left: 20%;
+      animation-duration: 20s;
+      animation-delay: -3s;
+    }
+
+    @keyframes floatAround {
+      0% {
+        transform: translate(0, 0) scale(1) rotate(0deg);
+      }
+      33% {
+        transform: translate(60px, -80px) scale(1.15) rotate(120deg);
+      }
+      66% {
+        transform: translate(-50px, 60px) scale(0.9) rotate(240deg);
+      }
+      100% {
+        transform: translate(40px, 40px) scale(1.05) rotate(360deg);
+      }
+    }
+
+    /* Glass Container Frame */
+    .calculator-wrapper {
+      position: relative;
+      z-index: 10;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 16px;
+      width: 100%;
+      max-width: 920px;
+    }
+
+    .calculator-card {
+      position: relative;
+      width: 100%;
+      max-width: 380px;
+      background: var(--glass-bg);
+      backdrop-filter: blur(35px) saturate(200%);
+      -webkit-backdrop-filter: blur(35px) saturate(200%);
+      border-radius: 36px;
+      border: 1px solid var(--glass-border);
+      box-shadow:
+        0 30px 60px var(--glass-shadow),
+        inset 0 1px 1px var(--glass-shine),
+        inset 0 -1px 1px rgba(0, 0, 0, 0.2);
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+      transition: max-width 0.4s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s ease, background 0.4s ease;
+      overflow: hidden;
+    }
+
+    .calculator-card.scientific {
+      max-width: 760px;
+    }
+
+    /* Glass Refraction Top Highlight */
+    .calculator-card::before {
+      content: "";
+      position: absolute;
+      top: 0;
+      left: 10%;
+      right: 10%;
+      height: 1px;
+      background: linear-gradient(90deg, transparent, var(--glass-shine), transparent);
+      pointer-events: none;
+    }
+
+    /* Header Toolbar Controls */
+    .header-bar {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      width: 100%;
+      padding: 2px 4px 6px 4px;
+    }
+
+    .window-dots {
+      display: flex;
+      gap: 8px;
+    }
+
+    .dot {
+      width: 12px;
+      height: 12px;
+      border-radius: 50%;
+      cursor: pointer;
+      transition: transform 0.2s ease, opacity 0.2s;
+      box-shadow: inset 0 1px 2px rgba(255, 255, 255, 0.4);
+    }
+    .dot:hover { transform: scale(1.15); }
+    .dot-close { background: #ff5f56; border: 0.5px solid #e0443e; }
+    .dot-min { background: #ffbd2e; border: 0.5px solid #dea123; }
+    .dot-max { background: #27c93f; border: 0.5px solid #1aab29; }
+
+    .tool-actions {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .icon-btn {
+      background: var(--btn-num-bg);
+      border: 1px solid var(--glass-border);
+      color: var(--text-main);
+      border-radius: 12px;
+      padding: 6px 12px;
+      font-size: 13px;
+      font-weight: 500;
+      cursor: pointer;
+      backdrop-filter: blur(10px);
+      -webkit-backdrop-filter: blur(10px);
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 6px;
+      transition: all 0.2s ease;
+      box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    .icon-btn:hover {
+      background: var(--btn-num-hover);
+      transform: translateY(-1px);
+    }
+    .icon-btn:active {
+      transform: translateY(0) scale(0.96);
+    }
+    .icon-btn.active {
+      background: var(--text-main);
+      color: var(--bg-gradient-1);
+      border-color: transparent;
+      font-weight: 600;
+    }
+
+    /* Display Area */
+    .display-container {
+      display: flex;
+      flex-direction: column;
+      align-items: flex-end;
+      justify-content: flex-end;
+      width: 100%;
+      min-height: 110px;
+      padding: 12px 18px;
+      background: rgba(0, 0, 0, 0.12);
+      border-radius: 22px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.25);
+      position: relative;
+      overflow: hidden;
+      cursor: pointer;
+    }
+
+    [data-theme="light"] .display-container {
+      background: rgba(255, 255, 255, 0.25);
+      border: 1px solid rgba(255, 255, 255, 0.4);
+      box-shadow: inset 0 2px 6px rgba(0, 0, 0, 0.05);
+    }
+
+    .sub-display {
+      font-size: 15px;
+      color: var(--text-sub);
+      min-height: 22px;
+      word-break: break-all;
+      text-align: right;
+      font-weight: 400;
+      letter-spacing: 0.5px;
+      transition: color 0.3s;
+    }
+
+    .main-display {
+      font-size: 48px;
+      font-weight: 300;
+      color: var(--text-main);
+      line-height: 1.15;
+      word-break: break-all;
+      text-align: right;
+      width: 100%;
+      transition: font-size 0.2s ease, color 0.3s;
+      letter-spacing: -0.5px;
+    }
+
+    .copy-toast {
+      position: absolute;
+      top: 10px;
+      left: 14px;
+      background: rgba(0, 0, 0, 0.75);
+      color: #fff;
+      font-size: 11px;
+      padding: 3px 8px;
+      border-radius: 8px;
+      opacity: 0;
+      transform: translateY(-5px);
+      transition: all 0.25s ease;
+      pointer-events: none;
+    }
+    .copy-toast.show {
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Keypads Grid Layout */
+    .keypad-container {
+      display: flex;
+      gap: 16px;
+      width: 100%;
+    }
+
+    .scientific-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      flex: 1;
+    }
+
+    .standard-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 12px;
+      flex: 1;
+    }
+
+    .scientific-grid.hidden {
+      display: none;
+    }
+
+    /* Liquid Glass Buttons */
+    .btn {
+      border: none;
+      outline: none;
+      height: 62px;
+      border-radius: 50px;
+      font-size: 22px;
+      font-weight: 400;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      position: relative;
+      backdrop-filter: blur(15px);
+      -webkit-backdrop-filter: blur(15px);
+      border: 1px solid var(--glass-border);
+      box-shadow:
+        0 4px 12px rgba(0, 0, 0, 0.15),
+        inset 0 1px 1px var(--glass-shine);
+      transition: transform 0.12s cubic-bezier(0.2, 0, 0.1, 1), background 0.2s, box-shadow 0.2s;
+    }
+
+    .btn:hover {
+      transform: translateY(-2px);
+      box-shadow:
+        0 6px 16px rgba(0, 0, 0, 0.22),
+        inset 0 1px 1.5px var(--glass-shine);
+    }
+
+    .btn:active {
+      transform: scale(0.92) translateY(1px);
+      box-shadow:
+        0 2px 6px rgba(0, 0, 0, 0.2),
+        inset 0 1px 1px rgba(0, 0, 0, 0.3);
+    }
+
+    /* Glass reflection highlight on buttons */
+    .btn::after {
+      content: "";
+      position: absolute;
+      top: 2px;
+      left: 15%;
+      right: 15%;
+      height: 35%;
+      background: linear-gradient(180deg, rgba(255, 255, 255, 0.25), transparent);
+      border-radius: 30px 30px 0 0;
+      pointer-events: none;
+      opacity: 0.8;
+    }
+
+    /* Button Color Variants */
+    .btn-num {
+      background: var(--btn-num-bg);
+      color: var(--btn-num-text);
+    }
+    .btn-num:hover {
+      background: var(--btn-num-hover);
+    }
+
+    .btn-func {
+      background: var(--btn-func-bg);
+      color: var(--btn-func-text);
+      font-weight: 500;
+    }
+    .btn-func:hover {
+      background: var(--btn-func-hover);
+    }
+
+    .btn-op {
+      background: var(--btn-op-bg);
+      color: var(--btn-op-text);
+      font-weight: 500;
+      font-size: 26px;
+    }
+    .btn-op:hover {
+      background: var(--btn-op-hover);
+      box-shadow: 0 0 18px var(--accent-glow);
+    }
+    .btn-op.active {
+      background: var(--btn-op-active);
+      color: var(--btn-op-active-text);
+      border-color: #ffffff;
+    }
+
+    .btn-zero {
+      grid-column: span 2;
+      border-radius: 35px;
+      justify-content: flex-start;
+      padding-left: 26px;
+    }
+
+    .btn-sci {
+      height: 52px;
+      font-size: 15px;
+      border-radius: 18px;
+      background: var(--btn-num-bg);
+      color: var(--text-main);
+      font-weight: 500;
+    }
+    .btn-sci:hover {
+      background: var(--btn-num-hover);
+    }
+    .btn-sci sub, .btn-sci sup {
+      font-size: 10px;
+    }
+
+    /* History Overlay Drawer */
+    .history-drawer {
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background: var(--history-bg);
+      backdrop-filter: blur(35px);
+      -webkit-backdrop-filter: blur(35px);
+      border-radius: 36px;
+      z-index: 50;
+      display: flex;
+      flex-direction: column;
+      padding: 24px;
+      transform: translateY(100%);
+      opacity: 0;
+      pointer-events: none;
+      transition: transform 0.4s cubic-bezier(0.16, 1, 0.3, 1), opacity 0.3s ease;
+    }
+    .history-drawer.open {
+      transform: translateY(0);
+      opacity: 1;
+      pointer-events: auto;
+    }
+
+    .history-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 16px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid var(--glass-border);
+    }
+    .history-title {
+      font-size: 18px;
+      font-weight: 600;
+    }
+    .history-list {
+      flex: 1;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
+      padding-right: 4px;
+    }
+    .history-list::-webkit-scrollbar {
+      width: 4px;
+    }
+    .history-list::-webkit-scrollbar-thumb {
+      background: rgba(255, 255, 255, 0.2);
+      border-radius: 4px;
+    }
+    .history-item {
+      background: rgba(255, 255, 255, 0.06);
+      border-radius: 14px;
+      padding: 12px 14px;
+      border: 1px solid rgba(255, 255, 255, 0.08);
+      cursor: pointer;
+      transition: background 0.2s;
+      text-align: right;
+    }
+    .history-item:hover {
+      background: rgba(255, 255, 255, 0.14);
+    }
+    .history-item-expr {
+      font-size: 13px;
+      color: var(--text-sub);
+      margin-bottom: 4px;
+    }
+    .history-item-res {
+      font-size: 20px;
+      font-weight: 500;
+      color: var(--text-main);
+    }
+    .history-empty {
+      text-align: center;
+      color: var(--text-sub);
+      margin-top: 40px;
+      font-size: 14px;
+    }
+
+    /* Shortcuts Modal */
+    .modal-backdrop {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      background: rgba(0, 0, 0, 0.4);
+      backdrop-filter: blur(8px);
+      z-index: 100;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      opacity: 0;
+      pointer-events: none;
+      transition: opacity 0.3s ease;
+    }
+    .modal-backdrop.show {
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .modal-box {
+      background: var(--history-bg);
+      border: 1px solid var(--glass-border);
+      backdrop-filter: blur(30px);
+      border-radius: 24px;
+      padding: 24px;
+      max-width: 360px;
+      width: 90%;
+      box-shadow: 0 20px 40px rgba(0,0,0,0.4);
+      color: var(--text-main);
+    }
+    .modal-box h3 { margin-bottom: 14px; font-size: 18px; }
+    .modal-box ul { list-style: none; display: flex; flex-direction: column; gap: 8px; font-size: 13px; color: var(--text-sub); }
+    .modal-box kbd {
+      background: rgba(255,255,255,0.15);
+      padding: 2px 6px;
+      border-radius: 4px;
+      color: var(--text-main);
+      font-weight: 600;
+    }
+
+    /* Mobile & Responsive tweaks */
+    @media (max-width: 768px) {
+      .calculator-card.scientific {
+        max-width: 100%;
+      }
+      .keypad-container {
+        flex-direction: column;
+      }
+      .btn {
+        height: 56px;
+        font-size: 20px;
+      }
+      .btn-sci {
+        height: 44px;
+        font-size: 13px;
+      }
+      .main-display {
+        font-size: 40px;
+      }
+    }
+  </style>
 </head>
 <body>
-  <div class="wrap">
-    <header>
-      <div class="logo">📦</div>
-      <div>
-        <h1>Expiry Tracker — OCR Backend</h1>
-        <div class="sub">Node.js · Express · OpenAI vision proxy</div>
-      </div>
-    </header>
 
-    <div class="card">
-      <span id="health-pill" class="pill warn">Checking…</span>
-      <h2 style="margin-top:14px">Backend status</h2>
-      <div class="kv" id="health-kv">
-        <div>Endpoint</div><div><code>/health</code></div>
-        <div>OpenAI configured</div><div id="openai-state">—</div>
-        <div>Model</div><div id="model-state">—</div>
-        <div>Uptime</div><div id="uptime-state">—</div>
-      </div>
-    </div>
-
-    <div class="card">
-      <div class="row" style="justify-content:space-between">
-        <h2 style="margin:0">Scan history</h2>
-        <span class="muted">last 25 · auto-refresh 10s</span>
-      </div>
-      <div class="stats" id="scan-stats">
-        <div class="stat"><div class="num" id="s-total">—</div><div class="lbl">Total scans</div></div>
-        <div class="stat"><div class="num" id="s-ok">—</div><div class="lbl">Successful</div></div>
-        <div class="stat"><div class="num" id="s-failed">—</div><div class="lbl">Failed</div></div>
-        <div class="stat"><div class="num" id="s-conf">—</div><div class="lbl">Avg confidence</div></div>
-      </div>
-      <div id="scan-list"><div class="empty">No scans recorded yet.</div></div>
-      <p class="muted" style="margin-top:14px">
-        Each entry stores a SHA-256 of the image bytes, a hashed client IP, the model
-        used, the structured fields returned, and the upstream latency. Raw images are
-        <strong>not</strong> persisted.
-      </p>
-    </div>
-
-    <div class="card">
-      <h2>API</h2>
-      <p>The Android app talks to this single endpoint:</p>
-      <p class="ep">POST /ocr</p>
-      <p>Request body</p>
-<pre>{
-  "image": "&lt;base64-encoded JPEG bytes, &lt;= 8 MB&gt;",
-  "hint":  "&lt;optional ML Kit OCR text&gt;"
-}</pre>
-      <p>Successful response</p>
-<pre>{
-  "name":       "Whole Wheat Bread",
-  "mfgDate":    "2025-01-12",
-  "expDate":    "2025-02-08",
-  "confidence": 0.92
-}</pre>
-      <p>Audit log: <code>GET /scans?limit=50</code></p>
-      <p class="muted">
-        Dates are ISO format: <code>YYYY-MM-DD</code> when the day is printed,
-        <code>YYYY-MM</code> when only month/year are visible. Any field can be
-        <code>null</code>. The endpoint is rate limited to 20 requests per minute per IP.
-      </p>
-    </div>
-
-    <div class="card">
-      <span class="pill ok">Security</span>
-      <h2 style="margin-top:14px">Why an OCR backend?</h2>
-      <ul>
-        <li>The OpenAI API key lives <strong>only</strong> on the backend (Replit Secrets / env var).</li>
-        <li>The Android app contains <strong>no</strong> hardcoded secrets and no <code>BuildConfig</code> API key.</li>
-        <li>The app only knows the URL of this backend — set via <code>BACKEND_OCR_URL</code> in <code>local.properties</code>.</li>
-        <li>Body size is capped, base64 input is validated, and rate limiting is enforced per IP.</li>
-      </ul>
-    </div>
-
-    <p class="muted" style="margin-top:28px;text-align:center">
-      Replit · Expiry Tracker OCR backend
-    </p>
+  <!-- Ambient Background Glass Blobs -->
+  <div class="ambient-canvas">
+    <div class="blob blob-1"></div>
+    <div class="blob blob-2"></div>
+    <div class="blob blob-3"></div>
+    <div class="blob blob-4"></div>
   </div>
 
-<script>
-  function fmtTime(iso) {
-    const d = new Date(iso);
-    const pad = (n) => String(n).padStart(2, "0");
-    return `${pad(d.getHours())}:${pad(d.getMinutes())}:${pad(d.getSeconds())}`;
-  }
-  function statusPill(s) {
-    if (s === "ok") return '<span class="pill ok">ok</span>';
-    return `<span class="pill err">${s}</span>`;
-  }
-  function loadHealth() {
-    return fetch("/health").then(r => r.json()).then(j => {
-      const pill = document.getElementById("health-pill");
-      pill.textContent = j.ok ? "Online" : "Offline";
-      pill.className = "pill " + (j.ok ? "ok" : "warn");
-      document.getElementById("openai-state").textContent = j.openaiConfigured ? "yes" : "no (set OPENAI_API_KEY)";
-      document.getElementById("model-state").textContent = j.model || "—";
-      const s = Math.round(j.uptime || 0);
-      const m = Math.floor(s / 60), sec = s % 60;
-      document.getElementById("uptime-state").textContent = `${m}m ${sec}s`;
-    }).catch(() => {
-      const pill = document.getElementById("health-pill");
-      pill.textContent = "Offline";
-      pill.className = "pill warn";
-    });
-  }
-  function loadScans() {
-    return fetch("/scans?limit=25").then(r => r.json()).then(j => {
-      const stats = j.stats || {};
-      document.getElementById("s-total").textContent = stats.total ?? 0;
-      document.getElementById("s-ok").textContent = stats.ok ?? 0;
-      document.getElementById("s-failed").textContent = stats.failed ?? 0;
-      document.getElementById("s-conf").textContent = stats.avgConfidence == null ? "—" : stats.avgConfidence;
+  <!-- Calculator App Window -->
+  <div class="calculator-wrapper">
+    <div class="calculator-card" id="calcCard">
+      
+      <!-- Window Controls & Modes -->
+      <div class="header-bar">
+        <div class="window-dots">
+          <div class="dot dot-close" title="Reset Calculator" id="dotReset"></div>
+          <div class="dot dot-min" id="dotMin"></div>
+          <div class="dot dot-max" title="Toggle Scientific" id="dotScientific"></div>
+        </div>
+        <div class="tool-actions">
+          <button class="icon-btn" id="btnModeToggle" title="Toggle Scientific Mode">
+            <span>fx</span>
+          </button>
+          <button class="icon-btn" id="btnHistory" title="History">
+            <span>⏱</span>
+          </button>
+          <button class="icon-btn" id="btnSound" title="Toggle Sound">
+            <span id="soundIcon">🔊</span>
+          </button>
+          <button class="icon-btn" id="btnTheme" title="Toggle Theme">
+            <span id="themeIcon">🌙</span>
+          </button>
+          <button class="icon-btn" id="btnHelp" title="Shortcuts">
+            <span>?</span>
+          </button>
+        </div>
+      </div>
 
-      const list = document.getElementById("scan-list");
-      const entries = j.entries || [];
-      if (!entries.length) {
-        list.innerHTML = '<div class="empty">No scans recorded yet.</div>';
-        return;
+      <!-- Display -->
+      <div class="display-container" id="displayContainer" title="Click to copy result">
+        <div class="copy-toast" id="copyToast">Copied!</div>
+        <div class="sub-display" id="subDisplay">&nbsp;</div>
+        <div class="main-display" id="mainDisplay">0</div>
+      </div>
+
+      <!-- Keypad -->
+      <div class="keypad-container">
+        
+        <!-- Scientific Keypad -->
+        <div class="scientific-grid hidden" id="sciGrid">
+          <button class="btn btn-sci" data-action="rad-deg" id="degRadToggle">Rad</button>
+          <button class="btn btn-sci" data-action="sci-func" data-func="fact">x!</button>
+          <button class="btn btn-sci" data-action="parenthesis" data-val="(">(</button>
+          <button class="btn btn-sci" data-action="parenthesis" data-val=")">)</button>
+
+          <button class="btn btn-sci" data-action="sci-func" data-func="sin">sin</button>
+          <button class="btn btn-sci" data-action="sci-func" data-func="cos">cos</button>
+          <button class="btn btn-sci" data-action="sci-func" data-func="tan">tan</button>
+          <button class="btn btn-sci" data-action="sci-func" data-func="pow">x<sup>y</sup></button>
+
+          <button class="btn btn-sci" data-action="sci-func" data-func="asin">sin<sup>-1</sup></button>
+          <button class="btn btn-sci" data-action="sci-func" data-func="acos">cos<sup>-1</sup></button>
+          <button class="btn btn-sci" data-action="sci-func" data-func="atan">tan<sup>-1</sup></button>
+          <button class="btn btn-sci" data-action="sci-func" data-func="square">x<sup>2</sup></button>
+
+          <button class="btn btn-sci" data-action="sci-func" data-func="sqrt">√x</button>
+          <button class="btn btn-sci" data-action="sci-func" data-func="cbrt"><sup>3</sup>√x</button>
+          <button class="btn btn-sci" data-action="sci-func" data-func="ln">ln</button>
+          <button class="btn btn-sci" data-action="sci-func" data-func="log">log<sub>10</sub></button>
+
+          <button class="btn btn-sci" data-action="const" data-val="pi">π</button>
+          <button class="btn btn-sci" data-action="const" data-val="e">e</button>
+          <button class="btn btn-sci" data-action="mem" data-mem="mc">MC</button>
+          <button class="btn btn-sci" data-action="mem" data-mem="mr">MR</button>
+        </div>
+
+        <!-- Standard Keypad -->
+        <div class="standard-grid">
+          <button class="btn btn-func" id="btnAC" data-action="clear">AC</button>
+          <button class="btn btn-func" data-action="negate">±</button>
+          <button class="btn btn-func" data-action="percent">%</button>
+          <button class="btn btn-op" data-action="operator" data-op="/">÷</button>
+
+          <button class="btn btn-num" data-val="7">7</button>
+          <button class="btn btn-num" data-val="8">8</button>
+          <button class="btn btn-num" data-val="9">9</button>
+          <button class="btn btn-op" data-action="operator" data-op="*">×</button>
+
+          <button class="btn btn-num" data-val="4">4</button>
+          <button class="btn btn-num" data-val="5">5</button>
+          <button class="btn btn-num" data-val="6">6</button>
+          <button class="btn btn-op" data-action="operator" data-op="-">−</button>
+
+          <button class="btn btn-num" data-val="1">1</button>
+          <button class="btn btn-num" data-val="2">2</button>
+          <button class="btn btn-num" data-val="3">3</button>
+          <button class="btn btn-op" data-action="operator" data-op="+">+</button>
+
+          <button class="btn btn-num btn-zero" data-val="0">0</button>
+          <button class="btn btn-num" data-val=".">.</button>
+          <button class="btn btn-op" data-action="equals">=</button>
+        </div>
+      </div>
+
+      <!-- History Overlay Drawer -->
+      <div class="history-drawer" id="historyDrawer">
+        <div class="history-header">
+          <div class="history-title">History</div>
+          <div style="display: flex; gap: 8px;">
+            <button class="icon-btn" id="btnClearHistory">Clear</button>
+            <button class="icon-btn" id="btnCloseHistory">✕</button>
+          </div>
+        </div>
+        <div class="history-list" id="historyList">
+          <div class="history-empty">No calculation history yet</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Shortcuts Modal -->
+  <div class="modal-backdrop" id="helpModal">
+    <div class="modal-box">
+      <h3>Keyboard Shortcuts</h3>
+      <ul>
+        <li><kbd>0</kbd> – <kbd>9</kbd> / <kbd>.</kbd> : Enter numbers</li>
+        <li><kbd>+</kbd> <kbd>-</kbd> <kbd>*</kbd> <kbd>/</kbd> : Basic operators</li>
+        <li><kbd>Enter</kbd> or <kbd>=</kbd> : Calculate result</li>
+        <li><kbd>Escape</kbd> or <kbd>c</kbd> : Clear / AC</li>
+        <li><kbd>Backspace</kbd> : Delete last character</li>
+        <li><kbd>%</kbd> : Percent calculation</li>
+        <li><kbd>s</kbd> : Toggle Scientific mode</li>
+      </ul>
+      <div style="margin-top: 18px; text-align: right;">
+        <button class="icon-btn" id="btnCloseHelp">Got it</button>
+      </div>
+    </div>
+  </div>
+
+  <script>
+    (function() {
+      // App State
+      let currentValue = '0';
+      let previousValue = '';
+      let currentOperator = null;
+      let waitingForSecondOperand = false;
+      let subExpr = '';
+      let memoryValue = 0;
+      let isRadMode = true;
+      let soundEnabled = true;
+      let currentTheme = 'dark';
+      let isScientific = false;
+      let history = JSON.parse(localStorage.getItem('apple_glass_calc_history') || '[]');
+
+      // Web Audio API Sound Synthesizer
+      let audioCtx = null;
+      function playClickSound(type = 'click') {
+        if (!soundEnabled) return;
+        try {
+          if (!audioCtx) {
+            audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+          }
+          if (audioCtx.state === 'suspended') {
+            audioCtx.resume();
+          }
+          const osc = audioCtx.createOscillator();
+          const gain = audioCtx.createGain();
+          osc.connect(gain);
+          gain.connect(audioCtx.destination);
+
+          const now = audioCtx.currentTime;
+          if (type === 'op') {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(440, now);
+            osc.frequency.exponentialRampToValueAtTime(880, now + 0.06);
+            gain.gain.setValueAtTime(0.12, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.06);
+            osc.start(now);
+            osc.stop(now + 0.06);
+          } else if (type === 'equals') {
+            osc.type = 'triangle';
+            osc.frequency.setValueAtTime(523.25, now);
+            osc.frequency.exponentialRampToValueAtTime(659.25, now + 0.08);
+            gain.gain.setValueAtTime(0.15, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+            osc.start(now);
+            osc.stop(now + 0.08);
+          } else {
+            osc.type = 'sine';
+            osc.frequency.setValueAtTime(300, now);
+            osc.frequency.exponentialRampToValueAtTime(150, now + 0.04);
+            gain.gain.setValueAtTime(0.08, now);
+            gain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+            osc.start(now);
+            osc.stop(now + 0.04);
+          }
+        } catch(e) {}
       }
-      list.innerHTML = entries.map(e => {
-        const f = e.fields || {};
-        const name = f.name || '<span class="muted">(no name)</span>';
-        const dates = [f.mfgDate ? `MFG ${f.mfgDate}` : null, f.expDate ? `EXP ${f.expDate}` : null]
-          .filter(Boolean).join(" · ") || '<span class="muted">no dates</span>';
-        const conf = typeof f.confidence === "number" ? `· conf ${f.confidence.toFixed(2)}` : "";
-        return `
-          <div class="scan">
-            <div class="when">${fmtTime(e.timestamp)}</div>
-            <div>
-              <div class="name">${name}</div>
-              <div class="meta">${dates} ${conf}</div>
-            </div>
-            <div class="right">
-              ${statusPill(e.status)}<br>
-              <span class="muted">${e.durationMs ?? "–"} ms · img ${e.imageHash || "?"}</span>
-            </div>
-          </div>`;
-      }).join("");
-    }).catch(() => {});
-  }
-  loadHealth(); loadScans();
-  setInterval(() => { loadHealth(); loadScans(); }, 10000);
-</script>
+
+      // DOM Elements
+      const mainDisplay = document.getElementById('mainDisplay');
+      const subDisplay = document.getElementById('subDisplay');
+      const calcCard = document.getElementById('calcCard');
+      const sciGrid = document.getElementById('sciGrid');
+      const btnModeToggle = document.getElementById('btnModeToggle');
+      const btnHistory = document.getElementById('btnHistory');
+      const historyDrawer = document.getElementById('historyDrawer');
+      const closeHistory = document.getElementById('btnCloseHistory');
+      const clearHistory = document.getElementById('btnClearHistory');
+      const historyList = document.getElementById('historyList');
+      const btnSound = document.getElementById('btnSound');
+      const soundIcon = document.getElementById('soundIcon');
+      const btnTheme = document.getElementById('btnTheme');
+      const themeIcon = document.getElementById('themeIcon');
+      const btnHelp = document.getElementById('btnHelp');
+      const helpModal = document.getElementById('helpModal');
+      const btnCloseHelp = document.getElementById('btnCloseHelp');
+      const copyToast = document.getElementById('copyToast');
+      const displayContainer = document.getElementById('displayContainer');
+      const btnAC = document.getElementById('btnAC');
+      const degRadToggle = document.getElementById('degRadToggle');
+      const dotScientific = document.getElementById('dotScientific');
+      const dotReset = document.getElementById('dotReset');
+
+      // Format Number for Display
+      function formatDisplayNumber(numStr) {
+        if (numStr === 'Error' || numStr === 'Infinity' || numStr === '-Infinity' || numStr === 'NaN') {
+          return 'Error';
+        }
+        if (numStr.includes('e') || numStr.includes('E')) return numStr;
+        const parts = numStr.split('.');
+        let intPart = parts[0];
+        const decPart = parts.length > 1 ? '.' + parts[1] : '';
+        
+        let isNeg = false;
+        if (intPart.startsWith('-')) {
+          isNeg = true;
+          intPart = intPart.substring(1);
+        }
+        
+        intPart = intPart.replace(/\B(?=(\d{3})+(?!\d))/g, ',');
+        return (isNeg ? '-' : '') + intPart + decPart;
+      }
+
+      function updateDisplay() {
+        mainDisplay.textContent = formatDisplayNumber(currentValue);
+        subDisplay.innerHTML = subExpr || '&nbsp;';
+        
+        // Dynamic font size for long numbers
+        const len = currentValue.length;
+        if (len > 14) {
+          mainDisplay.style.fontSize = '26px';
+        } else if (len > 10) {
+          mainDisplay.style.fontSize = '34px';
+        } else if (len > 7) {
+          mainDisplay.style.fontSize = '40px';
+        } else {
+          mainDisplay.style.fontSize = '48px';
+        }
+
+        // AC vs C button text
+        if (currentValue !== '0' || previousValue !== '') {
+          btnAC.textContent = 'C';
+        } else {
+          btnAC.textContent = 'AC';
+        }
+
+        // Highlight active operator
+        document.querySelectorAll('.btn-op').forEach(btn => {
+          if (btn.dataset.action === 'operator' && btn.dataset.op === currentOperator && waitingForSecondOperand) {
+            btn.classList.add('active');
+          } else {
+            btn.classList.remove('active');
+          }
+        });
+      }
+
+      // Calculator Logic Functions
+      function inputDigit(digit) {
+        playClickSound('num');
+        if (waitingForSecondOperand) {
+          currentValue = digit === '.' ? '0.' : digit;
+          waitingForSecondOperand = false;
+        } else {
+          if (digit === '.') {
+            if (!currentValue.includes('.')) {
+              currentValue += '.';
+            }
+          } else {
+            currentValue = currentValue === '0' ? digit : currentValue + digit;
+          }
+        }
+        updateDisplay();
+      }
+
+      function handleOperator(nextOp) {
+        playClickSound('op');
+        const inputValue = parseFloat(currentValue);
+
+        if (currentOperator && waitingForSecondOperand) {
+          currentOperator = nextOp;
+          subExpr = `${previousValue} ${getOpSymbol(nextOp)}`;
+          updateDisplay();
+          return;
+        }
+
+        if (previousValue === '') {
+          previousValue = currentValue;
+        } else if (currentOperator) {
+          const result = performCalculation(parseFloat(previousValue), inputValue, currentOperator);
+          currentValue = String(cleanFloat(result));
+          previousValue = currentValue;
+        }
+
+        waitingForSecondOperand = true;
+        currentOperator = nextOp;
+        subExpr = `${previousValue} ${getOpSymbol(nextOp)}`;
+        updateDisplay();
+      }
+
+      function getOpSymbol(op) {
+        switch(op) {
+          case '+': return '+';
+          case '-': return '−';
+          case '*': return '×';
+          case '/': return '÷';
+          default: return op;
+        }
+      }
+
+      function performCalculation(first, second, op) {
+        switch(op) {
+          case '+': return first + second;
+          case '-': return first - second;
+          case '*': return first * second;
+          case '/': return second === 0 ? 'Error' : first / second;
+          default: return second;
+        }
+      }
+
+      function cleanFloat(num) {
+        if (typeof num !== 'number' || isNaN(num) || !isFinite(num)) return 'Error';
+        return Math.round(num * 1e12) / 1e12;
+      }
+
+      function handleEquals() {
+        playClickSound('equals');
+        if (!currentOperator || previousValue === '') return;
+
+        const inputValue = parseFloat(currentValue);
+        const fullExpr = `${previousValue} ${getOpSymbol(currentOperator)} ${inputValue}`;
+        const result = performCalculation(parseFloat(previousValue), inputValue, currentOperator);
+        const finalVal = String(cleanFloat(result));
+
+        if (finalVal !== 'Error') {
+          saveHistory(fullExpr, finalVal);
+        }
+
+        subExpr = `${fullExpr} =`;
+        currentValue = finalVal;
+        previousValue = '';
+        currentOperator = null;
+        waitingForSecondOperand = false;
+        updateDisplay();
+      }
+
+      function handleClear() {
+        playClickSound('click');
+        if (btnAC.textContent === 'C') {
+          currentValue = '0';
+          if (previousValue === '') subExpr = '';
+        } else {
+          currentValue = '0';
+          previousValue = '';
+          currentOperator = null;
+          waitingForSecondOperand = false;
+          subExpr = '';
+        }
+        updateDisplay();
+      }
+
+      function handleNegate() {
+        playClickSound('click');
+        if (currentValue === 'Error') return;
+        currentValue = String(parseFloat(currentValue) * -1);
+        updateDisplay();
+      }
+
+      function handlePercent() {
+        playClickSound('click');
+        if (currentValue === 'Error') return;
+        currentValue = String(cleanFloat(parseFloat(currentValue) / 100));
+        updateDisplay();
+      }
+
+      // Scientific Functions
+      function handleSciFunc(func) {
+        playClickSound('op');
+        let val = parseFloat(currentValue);
+        if (isNaN(val)) return;
+        let res = 0;
+        let exprLabel = '';
+
+        switch(func) {
+          case 'sin':
+            res = Math.sin(isRadMode ? val : val * Math.PI / 180);
+            exprLabel = `sin(${val})`;
+            break;
+          case 'cos':
+            res = Math.cos(isRadMode ? val : val * Math.PI / 180);
+            exprLabel = `cos(${val})`;
+            break;
+          case 'tan':
+            res = Math.tan(isRadMode ? val : val * Math.PI / 180);
+            exprLabel = `tan(${val})`;
+            break;
+          case 'asin':
+            res = isRadMode ? Math.asin(val) : Math.asin(val) * 180 / Math.PI;
+            exprLabel = `asin(${val})`;
+            break;
+          case 'acos':
+            res = isRadMode ? Math.acos(val) : Math.acos(val) * 180 / Math.PI;
+            exprLabel = `acos(${val})`;
+            break;
+          case 'atan':
+            res = isRadMode ? Math.atan(val) : Math.atan(val) * 180 / Math.PI;
+            exprLabel = `atan(${val})`;
+            break;
+          case 'square':
+            res = val * val;
+            exprLabel = `${val}²`;
+            break;
+          case 'sqrt':
+            res = Math.sqrt(val);
+            exprLabel = `√(${val})`;
+            break;
+          case 'cbrt':
+            res = Math.cbrt(val);
+            exprLabel = `³√(${val})`;
+            break;
+          case 'ln':
+            res = Math.log(val);
+            exprLabel = `ln(${val})`;
+            break;
+          case 'log':
+            res = Math.log10(val);
+            exprLabel = `log10(${val})`;
+            break;
+          case 'fact':
+            res = factorial(val);
+            exprLabel = `${val}!`;
+            break;
+          case 'pow':
+            previousValue = currentValue;
+            currentOperator = '^';
+            waitingForSecondOperand = true;
+            subExpr = `${val} ^`;
+            updateDisplay();
+            return;
+        }
+
+        const finalRes = String(cleanFloat(res));
+        subExpr = `${exprLabel} =`;
+        saveHistory(exprLabel, finalRes);
+        currentValue = finalRes;
+        waitingForSecondOperand = true;
+        updateDisplay();
+      }
+
+      function factorial(n) {
+        if (n < 0 || n > 170 || !Number.isInteger(n)) return 'Error';
+        if (n === 0 || n === 1) return 1;
+        let f = 1;
+        for (let i = 2; i <= n; i++) f *= i;
+        return f;
+      }
+
+      function handleConst(constType) {
+        playClickSound('num');
+        if (constType === 'pi') currentValue = String(Math.PI);
+        if (constType === 'e') currentValue = String(Math.E);
+        waitingForSecondOperand = false;
+        updateDisplay();
+      }
+
+      function handleMemory(action) {
+        playClickSound('click');
+        const val = parseFloat(currentValue);
+        if (action === 'mc') memoryValue = 0;
+        if (action === 'mr') {
+          currentValue = String(memoryValue);
+          waitingForSecondOperand = false;
+        }
+        updateDisplay();
+      }
+
+      // History Log Management
+      function saveHistory(expr, res) {
+        if (res === 'Error') return;
+        history.unshift({ expr, res, id: Date.now() });
+        if (history.length > 30) history.pop();
+        localStorage.setItem('apple_glass_calc_history', JSON.stringify(history));
+        renderHistory();
+      }
+
+      function renderHistory() {
+        if (history.length === 0) {
+          historyList.innerHTML = '<div class="history-empty">No calculation history yet</div>';
+          return;
+        }
+        historyList.innerHTML = history.map(item => `
+          <div class="history-item" data-res="${item.res}">
+            <div class="history-item-expr">${item.expr}</div>
+            <div class="history-item-res">${formatDisplayNumber(item.res)}</div>
+          </div>
+        `).join('');
+
+        document.querySelectorAll('.history-item').forEach(el => {
+          el.addEventListener('click', () => {
+            playClickSound('click');
+            currentValue = el.dataset.res;
+            waitingForSecondOperand = false;
+            updateDisplay();
+            historyDrawer.classList.remove('open');
+          });
+        });
+      }
+
+      // Event Listeners setup
+      document.querySelectorAll('.btn-num').forEach(btn => {
+        btn.addEventListener('click', () => inputDigit(btn.dataset.val));
+      });
+
+      document.querySelectorAll('.btn-op').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const action = btn.dataset.action;
+          if (action === 'operator') handleOperator(btn.dataset.op);
+          if (action === 'equals') handleEquals();
+        });
+      });
+
+      document.querySelectorAll('.btn-func').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const action = btn.dataset.action;
+          if (action === 'clear') handleClear();
+          if (action === 'negate') handleNegate();
+          if (action === 'percent') handlePercent();
+        });
+      });
+
+      document.querySelectorAll('.btn-sci').forEach(btn => {
+        btn.addEventListener('click', () => {
+          const action = btn.dataset.action;
+          if (action === 'sci-func') handleSciFunc(btn.dataset.func);
+          if (action === 'const') handleConst(btn.dataset.val);
+          if (action === 'mem') handleMemory(btn.dataset.mem);
+          if (action === 'rad-deg') {
+            playClickSound('click');
+            isRadMode = !isRadMode;
+            degRadToggle.textContent = isRadMode ? 'Rad' : 'Deg';
+          }
+        });
+      });
+
+      // Scientific Mode Toggle
+      function toggleScientific() {
+        playClickSound('click');
+        isScientific = !isScientific;
+        if (isScientific) {
+          sciGrid.classList.remove('hidden');
+          calcCard.classList.add('scientific');
+          btnModeToggle.classList.add('active');
+        } else {
+          sciGrid.classList.add('hidden');
+          calcCard.classList.remove('scientific');
+          btnModeToggle.classList.remove('active');
+        }
+      }
+      btnModeToggle.addEventListener('click', toggleScientific);
+      dotScientific.addEventListener('click', toggleScientific);
+
+      dotReset.addEventListener('click', () => {
+        playClickSound('click');
+        currentValue = '0';
+        previousValue = '';
+        currentOperator = null;
+        subExpr = '';
+        waitingForSecondOperand = false;
+        updateDisplay();
+      });
+
+      // Drawer & Modals
+      btnHistory.addEventListener('click', () => {
+        playClickSound('click');
+        renderHistory();
+        historyDrawer.classList.add('open');
+      });
+      closeHistory.addEventListener('click', () => {
+        playClickSound('click');
+        historyDrawer.classList.remove('open');
+      });
+      clearHistory.addEventListener('click', () => {
+        playClickSound('click');
+        history = [];
+        localStorage.removeItem('apple_glass_calc_history');
+        renderHistory();
+      });
+
+      btnSound.addEventListener('click', () => {
+        soundEnabled = !soundEnabled;
+        soundIcon.textContent = soundEnabled ? '🔊' : '🔇';
+      });
+
+      btnTheme.addEventListener('click', () => {
+        currentTheme = currentTheme === 'dark' ? 'light' : 'dark';
+        document.documentElement.setAttribute('data-theme', currentTheme);
+        themeIcon.textContent = currentTheme === 'dark' ? '🌙' : '☀️';
+      });
+
+      btnHelp.addEventListener('click', () => helpModal.classList.add('show'));
+      btnCloseHelp.addEventListener('click', () => helpModal.classList.remove('show'));
+      helpModal.addEventListener('click', (e) => {
+        if (e.target === helpModal) helpModal.classList.remove('show');
+      });
+
+      // Copy to Clipboard
+      displayContainer.addEventListener('click', () => {
+        if (currentValue === 'Error') return;
+        navigator.clipboard.writeText(currentValue).then(() => {
+          copyToast.classList.add('show');
+          setTimeout(() => copyToast.classList.remove('show'), 1500);
+        }).catch(() => {});
+      });
+
+      // Keyboard Integration
+      window.addEventListener('keydown', (e) => {
+        if (e.key >= '0' && e.key <= '9') {
+          inputDigit(e.key);
+        } else if (e.key === '.') {
+          inputDigit('.');
+        } else if (e.key === '+' || e.key === '-' || e.key === '*' || e.key === '/') {
+          handleOperator(e.key);
+        } else if (e.key === 'Enter' || e.key === '=') {
+          e.preventDefault();
+          handleEquals();
+        } else if (e.key === 'Escape' || e.key.toLowerCase() === 'c') {
+          handleClear();
+        } else if (e.key === 'Backspace') {
+          playClickSound('click');
+          if (currentValue.length > 1) {
+            currentValue = currentValue.slice(0, -1);
+          } else {
+            currentValue = '0';
+          }
+          updateDisplay();
+        } else if (e.key === '%') {
+          handlePercent();
+        } else if (e.key.toLowerCase() === 's') {
+          toggleScientific();
+        }
+      });
+
+      // Initial Render
+      updateDisplay();
+    })();
+  </script>
 </body>
 </html>
